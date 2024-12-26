@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, DocumentData } from 'firebase/firestore';
 import { db } from '../firebase';
-import Link from 'next/link';
 import { useTheme } from './ThemeProvider';
 
 interface BlogPost {
@@ -13,6 +12,18 @@ interface BlogPost {
   author: string;
   authorEmail: string;
   createdAt: string;
+}
+
+function convertDocToBlogPost(doc: DocumentData): BlogPost {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: data?.title || '',
+    content: data?.content || '',
+    author: data?.author || '',
+    authorEmail: data?.authorEmail || '',
+    createdAt: data?.createdAt || new Date().toISOString()
+  };
 }
 
 export default function BlogList() {
@@ -26,18 +37,13 @@ export default function BlogList() {
       try {
         const postsCollection = collection(db, 'posts');
         const querySnapshot = await getDocs(postsCollection);
-        const documents = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          title: doc.data().title,
-          content: doc.data().content,
-          author: doc.data().author,
-          authorEmail: doc.data().authorEmail,
-          createdAt: doc.data().createdAt
-        } as BlogPost));
+        const documents = querySnapshot.docs.map(convertDocToBlogPost);
 
         // Tarihe göre sırala (en yeni en üstte)
         const sortedPosts = documents.sort((a, b) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          const dateA = new Date(a.createdAt).getTime();
+          const dateB = new Date(b.createdAt).getTime();
+          return dateB - dateA;
         });
 
         setPosts(sortedPosts);
