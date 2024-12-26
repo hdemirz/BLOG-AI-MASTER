@@ -63,8 +63,9 @@ export default function BlogPost() {
       setImage(null);
       
     } catch (err) {
-      setError(err.message);
-      logUserInteraction('create_post_error', 'blog', err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Blog yazısı oluşturulurken bir hata oluştu';
+      setError(errorMessage);
+      logUserInteraction('create_post_error', 'blog', errorMessage);
     } finally {
       setLoading(false);
     }
