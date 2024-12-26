@@ -1,43 +1,40 @@
-import { auth } from '../firebase';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User
-} from 'firebase/auth';
+'use client';
 
-// Kullanıcı Kaydı
-export const registerUser = async (email: string, password: string) => {
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  UserCredential,
+  AuthError
+} from 'firebase/auth';
+import { auth } from '../firebase';
+
+export const signUp = async (email: string, password: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return { user: userCredential.user, error: null };
   } catch (error) {
-    return { user: null, error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Kayıt olurken bir hata oluştu';
+    return { user: null, error: errorMessage };
   }
 };
 
-// Kullanıcı Girişi
-export const loginUser = async (email: string, password: string) => {
+export const signIn = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return { user: userCredential.user, error: null };
   } catch (error) {
-    return { user: null, error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Giriş yaparken bir hata oluştu';
+    return { user: null, error: errorMessage };
   }
 };
 
-// Çıkış Yapma
-export const logoutUser = async () => {
+export const signOut = async () => {
   try {
-    await signOut(auth);
+    await firebaseSignOut(auth);
     return { error: null };
   } catch (error) {
-    return { error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Çıkış yaparken bir hata oluştu';
+    return { error: errorMessage };
   }
-};
-
-// Kullanıcı Durumu Takibi
-export const subscribeToAuthChanges = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, callback);
 }; 
