@@ -28,8 +28,12 @@ export default function BlogList() {
         const querySnapshot = await getDocs(postsCollection);
         const documents = querySnapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
-        })) as BlogPost[];
+          title: doc.data().title,
+          content: doc.data().content,
+          author: doc.data().author,
+          authorEmail: doc.data().authorEmail,
+          createdAt: doc.data().createdAt
+        } as BlogPost));
 
         // Tarihe göre sırala (en yeni en üstte)
         const sortedPosts = documents.sort((a, b) => {
