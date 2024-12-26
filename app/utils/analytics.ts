@@ -1,31 +1,18 @@
-import { analytics } from '../firebase';
-import { logEvent } from 'firebase/analytics';
+import { getAnalytics, logEvent, Analytics } from 'firebase/analytics';
+import { app } from '../firebase';
 
-// Olay Kaydetme
-export const logAnalyticsEvent = (eventName: string, eventParams?: any) => {
-  if (analytics) {
-    logEvent(analytics, eventName, eventParams);
-  }
-};
+let analytics: Analytics | null = null;
 
-// Sayfa Görüntüleme
-export const logPageView = (pageName: string) => {
-  if (analytics) {
-    logEvent(analytics, 'page_view', {
-      page_title: pageName,
-      page_location: window?.location?.href,
-      page_path: window?.location?.pathname
-    });
-  }
-};
+// Analytics'i yalnızca tarayıcı ortamında başlat
+if (typeof window !== 'undefined') {
+  analytics = getAnalytics(app);
+}
 
-// Kullanıcı Etkileşimi
-export const logUserInteraction = (action: string, category: string, label?: string) => {
-  if (analytics) {
-    logEvent(analytics, 'user_interaction', {
-      action,
-      category,
-      label
-    });
-  }
-}; 
+export function logUserInteraction(action: string, category: string, label: string) {
+  if (!analytics) return;
+
+  logEvent(analytics, action, {
+    event_category: category,
+    event_label: label
+  });
+} 
