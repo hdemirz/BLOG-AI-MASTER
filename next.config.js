@@ -1,12 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Temel ayarlar
-  reactStrictMode: false,
+  reactStrictMode: true,
   swcMinify: true,
   
   // Resim ayarları
   images: {
     domains: ['images.unsplash.com'],
+  },
+
+  // TypeScript ayarları
+  typescript: {
+    ignoreBuildErrors: false,
   },
 
   // Geliştirme sunucusu ayarları
