@@ -57,7 +57,7 @@ export default function About() {
               href="/giris" 
               className={`transition-colors ${theme === 'dark' ? 'text-white hover:text-gray-300' : 'text-gray-700 hover:text-gray-900'}`}
             >
-              Sign In
+              Giriş Yap
             </Link>
             <Link 
               href="/uyelik" 
@@ -67,7 +67,7 @@ export default function About() {
                   : 'bg-black text-white hover:bg-gray-800'
               }`}
             >
-              Subscribe Now
+              Üye Ol
             </Link>
           </div>
         </div>

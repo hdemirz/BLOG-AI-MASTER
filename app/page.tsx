@@ -7,6 +7,7 @@ import { useTheme } from '@/app/components/ThemeProvider';
 import { posts, Post } from './data/posts';
 import Sidebar from './components/Sidebar';
 import { useSearchParams } from 'next/navigation';
+import { auth } from './firebase';
 
 interface HomeProps {
   searchParams?: { [key: string]: string | string[] | undefined };
@@ -19,6 +20,7 @@ export default function Home({ searchParams }: HomeProps) {
   const params = useSearchParams();
   const selectedCategory = params.get('category');
   const searchRef = useRef<HTMLDivElement>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -31,6 +33,13 @@ export default function Home({ searchParams }: HomeProps) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setIsAuthenticated(!!user);
+    });
+    return () => unsubscribe();
   }, []);
 
   const filteredPosts = posts.filter(post => {
@@ -48,7 +57,7 @@ export default function Home({ searchParams }: HomeProps) {
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Sidebar />
-            <button 
+            <button
               onClick={toggleTheme}
               className={`transition-colors ${theme === 'dark' ? 'text-white hover:text-gray-300' : 'text-gray-700 hover:text-gray-900'}`}
               aria-label={theme === 'dark' ? 'Açık temaya geç' : 'Koyu temaya geç'}
@@ -66,30 +75,47 @@ export default function Home({ searchParams }: HomeProps) {
           </div>
 
           <div className="text-center flex-grow">
-            <h1 className={`text-3xl font-semibold tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>Hakan&apos;ın Blogu</h1>
+            <h1 className={`text-3xl font-semibold tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+              Hakan&apos;ın Blogu
+            </h1>
           </div>
 
           <div className="flex items-center gap-4">
-            <Link 
-              href="/giris" 
-              className={`transition-all duration-300 px-4 py-2 rounded-lg ${
-                theme === 'dark' 
-                  ? 'text-white hover:bg-gray-800' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Giriş Yap
-            </Link>
-            <Link 
-              href="/uyelik" 
-              className={`px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 ${
-                theme === 'dark'
-                  ? 'bg-white text-black hover:bg-gray-100'
-                  : 'bg-black text-white hover:bg-gray-800'
-              }`}
-            >
-              Üye Ol
-            </Link>
+            {isAuthenticated ? (
+              <button
+                onClick={() => auth.signOut()}
+                className={`transition-all duration-300 px-4 py-2 rounded-lg ${
+                  theme === 'dark' 
+                    ? 'text-white hover:bg-gray-800' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Çıkış Yap
+              </button>
+            ) : (
+              <>
+                <Link 
+                  href="/giris" 
+                  className={`transition-all duration-300 px-4 py-2 rounded-lg ${
+                    theme === 'dark' 
+                      ? 'text-white hover:bg-gray-800' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Giriş Yap
+                </Link>
+                <Link 
+                  href="/uyelik" 
+                  className={`px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 ${
+                    theme === 'dark'
+                      ? 'bg-white text-black hover:bg-gray-100'
+                      : 'bg-black text-white hover:bg-gray-800'
+                  }`}
+                >
+                  Üye Ol
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -265,7 +291,7 @@ export default function Home({ searchParams }: HomeProps) {
               <Link href={`/post/${post.slug}`}>
                 <div className="p-6">
                   <div className="aspect-w-16 aspect-h-9 mb-4 rounded-lg overflow-hidden">
-          <Image
+                    <Image
                       src={post.image}
                       alt={post.title}
                       width={1200}
