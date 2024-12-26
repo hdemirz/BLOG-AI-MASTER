@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { addDocument, updateDocument, deleteDocument } from '../utils/db';
-import { uploadFile, deleteFile } from '../utils/storage';
+import { addDocument } from '../utils/db';
+import { uploadFile } from '../utils/storage';
 import { auth } from '../firebase';
 import { logUserInteraction } from '../utils/analytics';
 
@@ -12,12 +12,7 @@ interface BlogPost {
   content: string;
   imageUrl?: string;
   author: string;
-  createdAt: Date;
-}
-
-interface FirebaseError {
-  code: string;
-  message: string;
+  createdAt: string;
 }
 
 export default function BlogPost() {
@@ -58,12 +53,12 @@ export default function BlogPost() {
         content,
         imageUrl,
         author: auth.currentUser.uid,
-        createdAt: new Date()
+        createdAt: new Date().toISOString()
       };
 
-      const { id, error: dbError } = await addDocument('posts', post);
-      if (dbError) {
-        throw new Error(dbError);
+      const result = await addDocument('posts', post);
+      if (result.error) {
+        throw new Error(result.error);
       }
 
       logUserInteraction('create_post', 'blog', 'success');
@@ -73,16 +68,10 @@ export default function BlogPost() {
       setContent('');
       setImage(null);
       
-    } catch (error: unknown) {
-      let errorMessage = 'Blog yazısı oluşturulurken bir hata oluştu';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error && typeof error === 'object' && 'message' in error) {
-        errorMessage = String(error.message);
-      }
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Blog yazısı oluşturulurken bir hata oluştu';
       
       setError(errorMessage);
       logUserInteraction('create_post_error', 'blog', errorMessage);
