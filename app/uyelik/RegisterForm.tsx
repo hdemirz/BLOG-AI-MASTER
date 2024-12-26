@@ -14,10 +14,13 @@ export default function RegisterForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
 
     if (password !== confirmPassword) {
       setError('Şifreler eşleşmiyor');
@@ -33,7 +36,12 @@ export default function RegisterForm() {
 
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push('/'); // Başarılı kayıttan sonra ana sayfaya yönlendir
+      setSuccess('Hesabınız başarıyla oluşturuldu! Ana sayfaya yönlendiriliyorsunuz...');
+      
+      // 3 saniye bekleyip ana sayfaya yönlendir
+      setTimeout(() => {
+        router.push('/');
+      }, 3000);
     } catch (err: any) {
       console.error('Kayıt hatası:', err);
       if (err.code === 'auth/email-already-in-use') {
@@ -211,8 +219,14 @@ export default function RegisterForm() {
             </div>
 
             {error && (
-              <div className="text-red-500 text-sm text-center">
+              <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="text-green-500 text-sm text-center bg-green-50 p-3 rounded-lg border border-green-200">
+                {success}
               </div>
             )}
 
@@ -228,7 +242,17 @@ export default function RegisterForm() {
                   loading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {loading ? 'Hesap oluşturuluyor...' : 'Hesap Oluştur'}
+                {loading ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Hesap oluşturuluyor...
+                  </div>
+                ) : (
+                  'Hesap Oluştur'
+                )}
               </button>
             </div>
           </form>
