@@ -15,6 +15,11 @@ interface BlogPost {
   createdAt: Date;
 }
 
+interface FirebaseError {
+  code: string;
+  message: string;
+}
+
 export default function BlogPost() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -34,13 +39,17 @@ export default function BlogPost() {
     setError('');
 
     try {
-      if (!auth.currentUser) throw new Error('Lütfen önce giriş yapın');
+      if (!auth.currentUser) {
+        throw new Error('Lütfen önce giriş yapın');
+      }
 
       let imageUrl = '';
       if (image) {
         const imagePath = `blog-images/${Date.now()}-${image.name}`;
         const uploadResult = await uploadFile(image, imagePath);
-        if (uploadResult.error) throw new Error(uploadResult.error);
+        if (uploadResult.error) {
+          throw new Error(uploadResult.error);
+        }
         imageUrl = uploadResult.url || '';
       }
 
@@ -52,8 +61,10 @@ export default function BlogPost() {
         createdAt: new Date()
       };
 
-      const { id, error } = await addDocument('posts', post);
-      if (error) throw new Error(error);
+      const { id, error: dbError } = await addDocument('posts', post);
+      if (dbError) {
+        throw new Error(dbError);
+      }
 
       logUserInteraction('create_post', 'blog', 'success');
       
@@ -62,8 +73,17 @@ export default function BlogPost() {
       setContent('');
       setImage(null);
       
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Blog yazısı oluşturulurken bir hata oluştu';
+    } catch (error: unknown) {
+      let errorMessage = 'Blog yazısı oluşturulurken bir hata oluştu';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
+      }
+      
       setError(errorMessage);
       logUserInteraction('create_post_error', 'blog', errorMessage);
     } finally {
