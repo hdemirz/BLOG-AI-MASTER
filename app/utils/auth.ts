@@ -1,57 +1,64 @@
 'use client';
 
+import { auth } from '../firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  UserCredential,
-  AuthError,
   sendEmailVerification,
   User
 } from 'firebase/auth';
-import { auth } from '../firebase';
 
-export const signUp = async (email: string, password: string) => {
+interface AuthResult {
+  user?: User;
+  error?: string;
+}
+
+interface VerificationResult {
+  success?: boolean;
+  message?: string;
+}
+
+export const signUp = async (email: string, password: string): Promise<AuthResult> => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return { user: userCredential.user, error: null };
+    return { user: userCredential.user };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Kayıt olurken bir hata oluştu';
-    return { user: null, error: errorMessage };
-  }
-};
-
-export const signIn = async (email: string, password: string) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return { user: userCredential.user, error: null };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Giriş yaparken bir hata oluştu';
-    return { user: null, error: errorMessage };
-  }
-};
-
-export const signOut = async () => {
-  try {
-    await firebaseSignOut(auth);
-    return { error: null };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Çıkış yaparken bir hata oluştu';
     return { error: errorMessage };
   }
 };
 
-export const sendVerificationEmail = async (user: User) => {
+export const signIn = async (email: string, password: string): Promise<AuthResult> => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return { user: userCredential.user };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Giriş yaparken bir hata oluştu';
+    return { error: errorMessage };
+  }
+};
+
+export const signOut = async (): Promise<void> => {
+  try {
+    await firebaseSignOut(auth);
+  } catch (error) {
+    console.error('Çıkış yaparken hata:', error);
+  }
+};
+
+export const sendVerificationEmail = async (user: User): Promise<VerificationResult> => {
   try {
     await sendEmailVerification(user);
-    return {
+    return { 
       success: true,
-      message: 'Doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin.'
+      message: 'Doğrulama e-postası gönderildi. Lütfen e-posta kutunuzu kontrol edin.'
     };
-  } catch (error: any) {
-    return {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Doğrulama e-postası gönderilirken bir hata oluştu';
+    return { 
       success: false,
-      message: 'Doğrulama e-postası gönderilemedi: ' + error.message
+      message: errorMessage
     };
   }
 };

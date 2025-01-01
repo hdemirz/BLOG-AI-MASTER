@@ -1,41 +1,50 @@
 import { storage } from '../firebase';
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject
-} from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
-// Dosya Yükleme
-export const uploadFile = async (file: File, path: string) => {
+interface UploadResult {
+  url?: string;
+  error?: string;
+}
+
+interface DeleteResult {
+  error?: string;
+}
+
+interface GetUrlResult {
+  url?: string;
+  error?: string;
+}
+
+export const uploadFile = async (file: File, path: string): Promise<UploadResult> => {
   try {
     const storageRef = ref(storage, path);
     const snapshot = await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(snapshot.ref);
-    return { url: downloadURL, error: null };
+    
+    return { url: downloadURL };
   } catch (error) {
-    return { url: null, error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Dosya yüklenirken bir hata oluştu';
+    return { error: errorMessage };
   }
 };
 
-// Dosya Silme
-export const deleteFile = async (path: string) => {
+export const deleteFile = async (path: string): Promise<DeleteResult> => {
   try {
     const storageRef = ref(storage, path);
     await deleteObject(storageRef);
-    return { error: null };
+    return {};
   } catch (error) {
-    return { error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Dosya silinirken bir hata oluştu';
+    return { error: errorMessage };
   }
 };
 
-// Dosya URL'i Alma
-export const getFileURL = async (path: string) => {
+export const getFileUrl = async (path: string): Promise<GetUrlResult> => {
   try {
-    const storageRef = ref(storage, path);
-    const url = await getDownloadURL(storageRef);
-    return { url, error: null };
+    const url = await getDownloadURL(ref(storage, path));
+    return { url };
   } catch (error) {
-    return { url: null, error: error.message };
+    const errorMessage = error instanceof Error ? error.message : 'Dosya URL\'i alınırken bir hata oluştu';
+    return { error: errorMessage };
   }
 }; 
