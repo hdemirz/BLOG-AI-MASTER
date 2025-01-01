@@ -5,7 +5,9 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   UserCredential,
-  AuthError
+  AuthError,
+  sendEmailVerification,
+  User
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -36,5 +38,29 @@ export const signOut = async () => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Çıkış yaparken bir hata oluştu';
     return { error: errorMessage };
+  }
+};
+
+export const sendVerificationEmail = async (user: User) => {
+  try {
+    await sendEmailVerification(user);
+    return {
+      success: true,
+      message: 'Doğrulama e-postası gönderildi. Lütfen e-postanızı kontrol edin.'
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: 'Doğrulama e-postası gönderilemedi: ' + error.message
+    };
+  }
+};
+
+export const checkEmailVerification = async (user: User) => {
+  try {
+    await user.reload();
+    return user.emailVerified;
+  } catch (error) {
+    return false;
   }
 }; 

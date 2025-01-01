@@ -8,6 +8,7 @@ import { posts, Post } from './data/posts';
 import Sidebar from './components/Sidebar';
 import { useSearchParams } from 'next/navigation';
 import { auth } from './firebase';
+import { useAuth } from './AuthContext';
 
 interface HomeProps {
   searchParams?: { [key: string]: string | string[] | undefined };
@@ -20,7 +21,15 @@ export default function Home({ searchParams }: HomeProps) {
   const params = useSearchParams();
   const selectedCategory = params.get('category');
   const searchRef = useRef<HTMLDivElement>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, auth } = useAuth();
+
+  const filteredPosts = posts.filter(post => {
+    const matchesCategory = selectedCategory ? post.categories.includes(selectedCategory) : true;
+    const matchesSearch = searchQuery.toLowerCase() === '' || 
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -34,21 +43,6 @@ export default function Home({ searchParams }: HomeProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setIsAuthenticated(!!user);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const filteredPosts = posts.filter(post => {
-    const matchesCategory = selectedCategory ? post.categories.includes(selectedCategory) : true;
-    const matchesSearch = searchQuery.toLowerCase() === '' || 
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-black text-white' : 'bg-white text-black'}`}>
@@ -276,162 +270,140 @@ export default function Home({ searchParams }: HomeProps) {
         </div>
       </nav>
 
-      {/* Blog Yazıları */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredPosts.map((post) => (
-            <article
-              key={post.id}
-              className={`rounded-lg overflow-hidden border transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${
-                theme === 'dark' 
-                  ? 'border-gray-800 hover:bg-gray-900/50' 
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              <Link href={`/post/${post.slug}`}>
-                <div className="p-6">
-                  <div className="aspect-w-16 aspect-h-9 mb-4 rounded-lg overflow-hidden">
+      {/* Ana İçerik */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Öne Çıkan Yazılar - Sadece ana sayfada göster */}
+        {!selectedCategory && (
+          <div className="mb-12">
+            <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Öne Çıkan Yazılar
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {filteredPosts.slice(0, 2).map((post) => (
+                <Link
+                  key={post.slug}
+                  href={`/post/${post.slug}`}
+                  className={`group relative overflow-hidden rounded-2xl ${
+                    theme === 'dark' 
+                      ? 'bg-black hover:bg-gray-900/50' 
+                      : 'bg-white hover:bg-gray-50'
+                  } shadow-lg transition-transform duration-300 hover:scale-[1.02]`}
+                >
+                  <div className="aspect-w-16 aspect-h-9 relative">
                     <Image
                       src={post.image}
                       alt={post.title}
-                      width={1200}
-                      height={675}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                      width={800}
+                      height={450}
+                      className="object-cover"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   </div>
-                  <h2 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
-                    theme === 'dark' 
-                      ? 'text-white group-hover:text-blue-400' 
-                      : 'text-gray-900 group-hover:text-blue-600'
-                  }`}>
-                    {post.title}
-                  </h2>
-                  <p className={`mb-4 line-clamp-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {post.summary}
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {post.categories.map((category) => (
-                      <span
-                        key={category}
-                        className={`px-2 py-1 rounded-full text-xs transition-colors duration-200 ${
-                          theme === 'dark'
-                            ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
-                        }`}
-                      >
-                        {category}
-                      </span>
-                    ))}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {post.categories.map((category) => (
+                        <span
+                          key={category}
+                          className="px-3 py-1 text-sm text-white bg-blue-500 rounded-full"
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-gray-200 text-sm mb-4 line-clamp-2">
+                      {post.summary}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-300">
+                      <time>
+                        {new Date(post.date).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </time>
+                      <span>{post.readTime} dakika okuma</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <time className={`transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'text-gray-400 hover:text-gray-300' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}>
-                      {new Date(post.date).toLocaleDateString('tr-TR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </time>
-                    <span className={`transition-colors duration-200 ${
-                      theme === 'dark' 
-                        ? 'text-gray-400 hover:text-gray-300' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}>
-                      {post.readTime} dakika okuma
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      {/* Newsletter */}
-      <div className="max-w-7xl mx-auto px-4 pb-12">
-        <div className={`relative overflow-hidden rounded-[40px] ${
-          theme === 'dark' 
-            ? 'bg-gradient-to-br from-blue-900 via-gray-900 to-purple-900' 
-            : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'
-        }`}>
-          {/* Dekoratif elementler */}
-          <div className="absolute top-0 left-0 w-full h-full">
-            <div className="absolute top-0 left-0 w-64 h-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/10"></div>
-            <div className="absolute bottom-0 right-0 w-64 h-64 translate-x-1/2 translate-y-1/2 rounded-full bg-purple-500/10"></div>
-          </div>
-
-          <div className="relative p-8 md:p-12">
-            <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 mb-6">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-              </div>
-
-              <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                Yeni Yazılardan İlk Siz Haberdar Olun!
-              </h2>
-              
-              <p className={`text-lg mb-8 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                Her hafta yayınlanan en iyi içeriklerimizi kaçırmak için bültenimize katılın. 
-                Spam yok, sadece kaliteli içerik!
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
-                <input
-                  type="email"
-                  placeholder="E-posta adresiniz"
-                  className={`flex-1 px-6 py-4 rounded-xl text-lg border-2 focus:outline-none focus:ring-2 transition-all duration-300 ${
-                    theme === 'dark'
-                      ? 'bg-gray-900/50 border-gray-700 text-white focus:ring-blue-500 focus:border-blue-500'
-                      : 'bg-white border-gray-200 text-black focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                />
-                <button
-                  className={`px-8 py-4 rounded-xl text-lg font-medium transition-all duration-300 transform hover:scale-105 ${
-                    theme === 'dark'
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
-                      : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
-                  }`}
-                >
-                  Abone Ol
-                </button>
-              </div>
-
-              <div className="mt-8 flex items-center justify-center gap-8 text-sm">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-                    Haftalık Bülten
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-                    Özel İçerikler
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-                    Ücretsiz
-                  </span>
-                </div>
-              </div>
-
-              <p className={`mt-6 text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
-                🔒 Gizliliğinize önem veriyoruz. E-posta adresinizi asla paylaşmayacağız.
-              </p>
+                </Link>
+              ))}
             </div>
+          </div>
+        )}
+
+        {/* Yazılar Başlığı */}
+        <div>
+          <h2 className={`text-2xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {selectedCategory ? `${selectedCategory} Yazıları` : 'Tüm Yazılar'}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {(selectedCategory ? filteredPosts : filteredPosts.slice(2)).map((post) => (
+              <article key={post.slug}>
+                <Link href={`/post/${post.slug}`} className={`block h-full rounded-xl overflow-hidden transition-transform duration-300 hover:scale-[1.02] ${
+                  theme === 'dark'
+                    ? 'bg-black hover:bg-gray-900/50' 
+                    : 'bg-white hover:bg-gray-50'
+                } shadow-lg`}>
+                  <div className="p-6">
+                    <div className="aspect-w-16 aspect-h-9 mb-4 rounded-lg overflow-hidden">
+                      <Image
+                        src={post.image}
+                        alt={post.title}
+                        width={1200}
+                        height={675}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                      />
+                    </div>
+                    <h2 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+                      theme === 'dark' 
+                        ? 'text-white group-hover:text-blue-400' 
+                        : 'text-gray-900 group-hover:text-blue-600'
+                    }`}>
+                      {post.title}
+                    </h2>
+                    <p className={`mb-4 line-clamp-3 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {post.summary}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {post.categories.map((category) => (
+                        <span
+                          key={category}
+                          className={`px-2 py-1 rounded-full text-xs transition-colors duration-200 ${
+                            theme === 'dark'
+                              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                          }`}
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <time className={`transition-colors duration-200 ${
+                        theme === 'dark' 
+                          ? 'text-gray-400 hover:text-gray-300' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}>
+                        {new Date(post.date).toLocaleDateString('tr-TR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </time>
+                      <span className={`transition-colors duration-200 ${
+                        theme === 'dark' 
+                          ? 'text-gray-400 hover:text-gray-300' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}>
+                        {post.readTime} dakika okuma
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </article>
+            ))}
           </div>
         </div>
       </div>
